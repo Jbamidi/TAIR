@@ -1,0 +1,54 @@
+---
+description: "DIM: development environment (Docker ROS2 + noVNC RViz on macOS Apple Silicon)"
+globs:
+  - "Dockerfile"
+  - "docker-compose.yml"
+  - "docs/development-environment.md"
+  - "ros2_ws/**"
+alwaysApply: true
+---
+
+## DIM development environment (source of truth)
+
+Assume the primary dev setup is:
+
+- macOS (Apple Silicon / ARM64)
+- Docker Desktop runs an Ubuntu 22.04 ARM64 container for ROS 2 Humble
+- Repo root is mounted into the container at `/workspace`
+- ROS 2 workspace is in `/workspace/ros2_ws`
+
+### Start/enter the container (recommended)
+
+Use the noVNC-enabled container for GUI tools like RViz:
+
+```bash
+docker compose up -d --build ros2_vnc
+docker exec -it dim_ros2_vnc bash
+```
+
+### Build the workspace (inside container)
+
+```bash
+cd /workspace/ros2_ws
+colcon build
+source install/setup.bash
+```
+
+### RViz on macOS via noVNC (recommended)
+
+Host steps:
+
+- Start container: `docker compose up -d --build ros2_vnc`
+- Open: `http://localhost:6080/vnc.html` and click **Connect**
+
+Container steps:
+
+- `docker exec -it dim_ros2_vnc bash`
+- Run `rviz2`
+
+When troubleshooting RViz, check `glxinfo -B` first (expect Mesa llvmpipe / OpenGL 3.x).
+
+### XQuartz (optional)
+
+XQuartz can work for basic X11 apps, but RViz frequently fails due to GLX/OpenGL limitations. Prefer noVNC.
+
