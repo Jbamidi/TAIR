@@ -35,10 +35,11 @@ RPLiDAR → /scan → Sensor Fusion → Hector SLAM → /map → RViz (live) →
 
 - Hemal: Mac Mini M4, Docker Ubuntu 22.04 ARM64
 - ROS2 Humble inside Docker container
-- Cursor connected via Dev Containers extension
+- GUI tools (RViz) run via Docker container + **noVNC** (browser at `http://localhost:6080/vnc.html`)
+- Cursor: edit code on macOS; build/run inside container
 - Repo: github.com/Jbamidi/Indoor-Drone-Startup
 
 ### Current Build Status
 
-Environment not set up. No real code written.
-Next step: Docker + ROS2 setup, then simulated LiDAR node.
+Docker + ROS 2 Humble dev environment is set up (ARM64). RViz works via noVNC.
+Next step: add a first ROS 2 package/node in `ros2_ws` (e.g. simulated LiDAR), then integrate SLAM + navigation.

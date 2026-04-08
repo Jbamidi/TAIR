@@ -1,0 +1,61 @@
+services:
+  ros2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ros:humble-ros-base-jammy
+    platform: linux/arm64
+    container_name: dim_ros2
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    extra_hosts:
+      # Ensure host.docker.internal resolves to the Docker Desktop host gateway
+      # (works reliably across Docker Desktop versions).
+      - "host.docker.internal:host-gateway"
+    environment:
+      - DISPLAY=host.docker.internal:0
+      - QT_X11_NO_MITSHM=1
+      - QT_XCB_GL_INTEGRATION=none
+      - LIBGL_ALWAYS_INDIRECT=1
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - GALLIUM_DRIVER=llvmpipe
+      - LIBGL_DRI3_DISABLE=1
+      - MESA_GL_VERSION_OVERRIDE=3.3
+      - MESA_GLSL_VERSION_OVERRIDE=330
+      - ROS_DOMAIN_ID=0
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  ros2_vnc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ros:humble-ros-base-jammy
+    platform: linux/arm64
+    container_name: dim_ros2_vnc
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      - DISPLAY=:1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+      - QT_X11_NO_MITSHM=1
+      - QT_XCB_GL_INTEGRATION=none
+      # Indirect GLX often reports no usable OpenGL version in dummy Xorg setups.
+      # Prefer Mesa software rendering (llvmpipe) without forcing indirect mode.
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - GALLIUM_DRIVER=llvmpipe
+      - LIBGL_DRI3_DISABLE=1
+      - MESA_GL_VERSION_OVERRIDE=3.3
+      - MESA_GLSL_VERSION_OVERRIDE=330
+    ports:
+      - "5900:5900"
+      - "6080:6080"
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ["/usr/local/bin/start-vnc.sh"]
+
