@@ -1,4 +1,4 @@
-# Indoor Drone Startup (DIM)
+# TAIR
 
 ROS 2 Humble project for indoor mapping/navigation. Primary dev setup is **macOS (Apple Silicon)** with ROS 2 running in **Docker** and RViz available via **noVNC** in your browser.
 
