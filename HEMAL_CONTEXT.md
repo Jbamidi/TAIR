@@ -1,6 +1,6 @@
 # Hemal's Working Context — TAIR Pre-Bay Sprint
 
-**Last Updated:** May 9, 2026
+**Last Updated:** May 9, 2026 — post-session update (Cursor + Claude Cowork)
 **Purpose:** Drop this into any new Claude Cowork, Claude Code, or Cursor session to give full context on what Hemal is working on. This is the software-side companion to `TAIR_Context.md`.
 
 ---
@@ -26,41 +26,55 @@ Full context: see `TAIR_Context.md` in the repo root.
 
 ## The Situation Right Now (May 9, 2026)
 
-**I have ~3.5 weeks** before Jashwanth (hardware co-founder) arrives in the Bay Area with physical hardware. Everything I finish before then determines whether Bay Week 1 is "just plug in hardware and run" (good) or "build everything from scratch while also assembling hardware" (disaster).
+**I have ~3.5 weeks** before Jashwanth (hardware co-founder) arrives in the Bay Area with physical hardware.
 
-### What Exists
-- GitHub repo: `https://github.com/Jbamidi/TAIR` (private)
+### What Exists (as of end of May 9 session)
+- GitHub repo: `https://github.com/Jbamidi/TAIR` (private) — branch `hemal/phase1-setup` active, PR #2 open (draft)
 - Local clone: `~/Desktop/Repos/TAIR`
-- Docker container: **ROS2 Humble** (Ubuntu 22.04, ARM64) with noVNC for RViz — runs and builds
-- `ros2_ws/src/` is **empty** — no ROS2 packages have been added yet
-- Gazebo is **NOT installed** in the container yet
-- No TurtleBot3 simulation set up
-- No SLAM pipeline
+- Docker container: `tair_ros2_vnc` — **running**, ROS2 Humble ARM64 + noVNC on `http://localhost:6080/vnc.html`
+- `ros2_ws/src/tair_bringup` — **built and passing** (`colcon build` ~1.7s): `tair_sim.launch.py`, `tair_localize.launch.py`, `slam_toolbox_params.yaml`, `rviz_config.rviz`
+- `slam-toolbox`, `turtlebot3_fake_node`, `nav2_map_server`, `teleop_twist_keyboard` all installed in container
+- `docs/INTERFACE.md` — created
+- `.gitattributes`, `.gitignore` — added
+- MCPs configured in `~/.cursor/mcp.json`: Notion, GitHub, Docker, PostgreSQL, Railway (token set), Vercel (OAuth done)
+- Node.js v26 installed via Homebrew (powers npx-based MCPs)
+
+### What Does NOT Exist Yet
+- No SLAM run completed (container is ready — just hasn't been launched yet)
+- No saved map file
+- No ROS bag recorded
 - No FastAPI backend
 - No React/Three.js dashboard
-- No INTERFACE.md
-- `docs/claude-context.md` is outdated (references RPLiDAR S2, Orange Pi, Hector SLAM — all superseded)
+
+### Key Decision: Gazebo Classic → turtlebot3_fake_node
+Gazebo Classic binaries (`ros-humble-gazebo-ros-pkgs`) are not published for ARM64 in the ROS 2 Humble apt repos. The correct simulation approach for Apple Silicon Docker is `turtlebot3_fake_node`, which publishes `/scan`, `/odom`, and the full TF tree without Gazebo. All launch files have been updated accordingly.
 
 ### Decision: Humble vs Jazzy
-The context doc says target is **ROS2 Jazzy**, but the Docker setup is **Humble**. The pragmatic call: **stay on Humble for now**. Jazzy (Ubuntu 24.04) is newer but Humble has better package availability for Gazebo + TurtleBot3 + slam-toolbox on ARM64 Docker. Migration to Jazzy can happen later when deploying to the Rubik Pi. The SLAM algorithms, node structure, and launch files are identical across both — it's a one-line base image change.
+Stay on **Humble** for Docker dev. Jazzy migration happens when deploying to the Rubik Pi. Launch files and SLAM config are identical — it's a one-line base image change.
 
 ---
 
 ## My 4-Week Sprint Plan
 
-### Week 1 (May 9–16): Fix Sim Environment ← YOU ARE HERE
-**Goal:** Gazebo + TurtleBot3 running in Docker, simulated LiDAR visible in RViz2, colcon build clean.
+### Week 1 (May 9–16): Fix Sim Environment ← IN PROGRESS
+**Goal:** `turtlebot3_fake_node` + SLAM running in Docker, simulated LiDAR visible in RViz2, colcon build clean.
 
-Tasks:
-1. Install Gazebo Classic + TurtleBot3 packages in Docker container
-2. Launch TurtleBot3 in a Gazebo warehouse world
-3. Verify `/scan` topic publishes simulated LiDAR data
-4. View scan in RViz2 via noVNC
-5. Create `tair_bringup` launch package (even if initially just wrapping TurtleBot3 launch)
-6. Branch: `hemal/phase1-setup`
-7. Deliverable: screen recording of `ros2 launch` with simulated LiDAR visible in RViz2
+Completed (May 9):
+- [x] Updated Dockerfile: `turtlebot3_fake_node`, `slam-toolbox`, `nav2_map_server`, `teleop_twist_keyboard`
+- [x] Created `tair_bringup` package — builds clean in container
+- [x] `tair_sim.launch.py` (fake_node + slam_toolbox + RViz2)
+- [x] `tair_localize.launch.py` (localization mode against saved map)
+- [x] `slam_toolbox_params.yaml` (0.05m res, 20m range, loop closure on)
+- [x] `rviz_config.rviz` (shows /scan + /map)
+- [x] Container running: `docker exec -it tair_ros2_vnc bash`
 
-### Week 2 (May 16–23): SLAM Pipeline in Sim
+**Still needed:**
+- [ ] Actually launch `tair_sim.launch.py` and verify `/scan` visible in RViz2
+- [ ] Drive with teleop, confirm map builds
+- [ ] Screen recording (Week 1 deliverable)
+- [ ] Commit and push
+
+### Week 2 (May 16–23): SLAM Pipeline in Sim ← NEXT
 **Goal:** Full SLAM pipeline working end-to-end in simulation.
 
 Tasks:
@@ -151,7 +165,7 @@ TAIR/
 |---|---|---|
 | ROS2 | Humble (Docker, ARM64) | Jazzy migration deferred to Rubik Pi deployment |
 | SLAM | slam-toolbox | NOT Hector SLAM, NOT Cartographer |
-| Simulation | Gazebo Classic + TurtleBot3 | Warehouse world |
+| Simulation | `turtlebot3_fake_node` | Gazebo Classic not available for ARM64 in Humble apt repos |
 | Backend | FastAPI + PostgreSQL | Docker Compose locally, Railway for deploy |
 | Frontend | React + Vite + Three.js + TypeScript | Vercel for deploy |
 | Styling | Tailwind CSS | Matches marketing site |
@@ -163,7 +177,7 @@ TAIR/
 
 | Topic | Type | Source |
 |---|---|---|
-| `/scan` | `sensor_msgs/LaserScan` | LiDAR (sim: Gazebo, real: STL27L) |
+| `/scan` | `sensor_msgs/LaserScan` | LiDAR (sim: turtlebot3_fake_node, real: STL27L) |
 | `/imu/data` | `sensor_msgs/Imu` | IMU (sim: Gazebo plugin, real: MPU-9250) |
 | `/map` | `nav_msgs/OccupancyGrid` | slam-toolbox |
 | `/tf` | `tf2_msgs/TFMessage` | robot_state_publisher |
@@ -258,12 +272,20 @@ CREATE TABLE detections (
 
 ---
 
+## Session Log
+
+| Date | What Was Done | Next |
+|------|--------------|------|
+| May 9, 2026 | Dockerfile updated (fake_node + SLAM + Nav2), `tair_bringup` package created and building, `docs/INTERFACE.md` created, README + context files written, `.gitattributes` + `.gitignore` added, all MCPs configured (Docker/Postgres/Railway/Vercel/GitHub/Notion), Node.js v26 installed, container running, PR #2 opened on `hemal/phase1-setup` | Launch `tair_sim.launch.py`, verify `/scan` in RViz2, drive with teleop, screen recording |
+
+---
+
 ## How to Use This File
 
-**New Cursor session:** Open this file as context. Tell Cursor: "Read HEMAL_CONTEXT.md — I'm working on [specific task]."
+**New Cursor session:** Read this file automatically via `.cursor/rules/dev-environment.mdc`. Tell Cursor: "I'm working on [specific task]."
 
 **New Claude Cowork session:** Upload this file. Say: "I'm Hemal working on TAIR. Here's my context. I want to work on [X]."
 
 **New Claude Code session:** Reference this file. Say: "Read HEMAL_CONTEXT.md in the repo root for project context."
 
-**Update this file** at the end of each work session with what you completed and what's next.
+**Update this file** at the end of each work session — the Cursor rule `session-handoff.mdc` will prompt you to do this automatically.

@@ -1,0 +1,33 @@
+---
+description: At the end of every Cursor or Claude session, update HEMAL_CONTEXT.md with what was done and what is next, then commit and push to the active branch.
+alwaysApply: true
+---
+
+## Session Handoff Protocol
+
+At the end of every work session — or when Hemal says "wrap up", "end session", "update context", or "push context" — do the following **without being asked**:
+
+### 1. Update `HEMAL_CONTEXT.md`
+
+Edit these sections (do NOT rewrite the whole file):
+
+- **Last Updated** — set to today's date + "post-session update"
+- **What Exists** — add anything newly created or verified working
+- **What Does NOT Exist Yet** — remove items that are now done
+- **Week N tasks** — tick off completed items, add a "Still needed" list for the remainder
+- **Session Log** — append one row: `| Date | What Was Done | Next |`
+
+Keep changes surgical. Only touch stale sections.
+
+### 2. Commit and push
+
+```bash
+cd ~/Desktop/Repos/TAIR
+git add HEMAL_CONTEXT.md
+git commit -m "chore: update HEMAL_CONTEXT.md after session [DATE]"
+git push
+```
+
+### Why this matters
+
+`HEMAL_CONTEXT.md` is the shared memory between Cursor and Claude Cowork sessions. If it's not updated, the next session starts from stale information and wastes time re-establishing context.
