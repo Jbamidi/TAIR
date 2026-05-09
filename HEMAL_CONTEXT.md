@@ -29,19 +29,24 @@ Full context: see `TAIR_Context.md` in the repo root.
 **I have ~3.5 weeks** before Jashwanth (hardware co-founder) arrives in the Bay Area with physical hardware.
 
 ### What Exists (as of end of May 9 session)
-- GitHub repo: `https://github.com/Jbamidi/TAIR` (private) — branch `hemal/phase1-setup` active, PR #2 open (draft)
+- GitHub repo: `https://github.com/Jbamidi/TAIR` (private) — branch `hemal/phase1-setup` active, PR #2 open (draft), 7 commits
 - Local clone: `~/Desktop/Repos/TAIR`
-- Docker container: `tair_ros2_vnc` — **running**, ROS2 Humble ARM64 + noVNC on `http://localhost:6080/vnc.html`
-- `ros2_ws/src/tair_bringup` — **built and passing** (`colcon build` ~1.7s): `tair_sim.launch.py`, `tair_localize.launch.py`, `slam_toolbox_params.yaml`, `rviz_config.rviz`
+- Docker container: `tair_ros2_vnc` — **running**, ports bound (`0.0.0.0:6080->6080`), noVNC at `http://localhost:6080/vnc.html`
+- `ros2 launch tair_bringup tair_sim.launch.py` — **confirmed working**: all 4 nodes start cleanly
+  - `robot_state_publisher` — waffle URDF loaded, all TF segments published
+  - `turtlebot3_fake_node` — initialised, `/scan` + `/odom` publishing
+  - `slam_toolbox` — CeresSolver running, ready to map
+  - `rviz2` — OpenGL 3.3, visible at `http://localhost:6080/vnc.html`
+- `ros2_ws/src/tair_bringup` — built and passing, `rviz_config.rviz` fixed frame set to `odom`
 - `slam-toolbox`, `turtlebot3_fake_node`, `nav2_map_server`, `teleop_twist_keyboard` all installed in container
 - `docs/INTERFACE.md` — created
-- `.gitattributes`, `.gitignore` — added
-- MCPs configured in `~/.cursor/mcp.json`: Notion, GitHub, Docker, PostgreSQL, Railway (token set), Vercel (OAuth done)
+- `.gitattributes`, `.gitignore`, `.cursor/rules/session-handoff.mdc` — added
+- MCPs configured in `~/.cursor/mcp.json`: Notion, GitHub (classic PAT), Docker ✓, PostgreSQL ✓, Railway ✓ (token set), Vercel ✓ (OAuth done)
 - Node.js v26 installed via Homebrew (powers npx-based MCPs)
 
 ### What Does NOT Exist Yet
-- No SLAM run completed (container is ready — just hasn't been launched yet)
-- No saved map file
+- No SLAM map built yet (sim is running — needs teleop drive + map_saver_cli)
+- No saved map file (`/workspace/maps/`)
 - No ROS bag recorded
 - No FastAPI backend
 - No React/Three.js dashboard
@@ -62,17 +67,22 @@ Stay on **Humble** for Docker dev. Jazzy migration happens when deploying to the
 Completed (May 9):
 - [x] Updated Dockerfile: `turtlebot3_fake_node`, `slam-toolbox`, `nav2_map_server`, `teleop_twist_keyboard`
 - [x] Created `tair_bringup` package — builds clean in container
-- [x] `tair_sim.launch.py` (fake_node + slam_toolbox + RViz2)
+- [x] `tair_sim.launch.py` — `robot_state_publisher` + `turtlebot3_fake_node` (waffle.yaml params) + `slam_toolbox` + `rviz2`
 - [x] `tair_localize.launch.py` (localization mode against saved map)
 - [x] `slam_toolbox_params.yaml` (0.05m res, 20m range, loop closure on)
-- [x] `rviz_config.rviz` (shows /scan + /map)
-- [x] Container running: `docker exec -it tair_ros2_vnc bash`
+- [x] `rviz_config.rviz` — fixed frame set to `odom` so `/scan` ring is immediately visible
+- [x] Container running, all 4 nodes confirmed starting cleanly
+- [x] All commits pushed to `hemal/phase1-setup`, PR #2 open (draft), Jashwant added as reviewer
+- [x] MCPs configured: Docker, PostgreSQL, Railway, Vercel, GitHub, Notion
+- [x] `session-handoff.mdc` Cursor rule added (auto-updates context at session end)
 
-**Still needed:**
-- [ ] Actually launch `tair_sim.launch.py` and verify `/scan` visible in RViz2
-- [ ] Drive with teleop, confirm map builds
-- [ ] Screen recording (Week 1 deliverable)
-- [ ] Commit and push
+**Still needed (your next session):**
+- [ ] Open `http://localhost:6080/vnc.html` → RViz2 → verify `/scan` laser ring is visible (fixed frame = odom)
+- [ ] Drive with teleop: `docker exec tair_ros2_vnc bash -c "source /opt/ros/humble/setup.bash && ros2 run turtlebot3_teleop teleop_keyboard"`
+- [ ] Confirm `slam_toolbox` map builds as you drive
+- [ ] Save map: `ros2 run nav2_map_server map_saver_cli -f /workspace/maps/sim_v1`
+- [ ] Screen recording of SLAM pipeline (Week 1 deliverable)
+- [ ] Revoke old GitHub PAT at github.com/settings/tokens once new one is confirmed working
 
 ### Week 2 (May 16–23): SLAM Pipeline in Sim ← NEXT
 **Goal:** Full SLAM pipeline working end-to-end in simulation.
@@ -276,7 +286,7 @@ CREATE TABLE detections (
 
 | Date | What Was Done | Next |
 |------|--------------|------|
-| May 9, 2026 | Dockerfile updated (fake_node + SLAM + Nav2), `tair_bringup` package created and building, `docs/INTERFACE.md` created, README + context files written, `.gitattributes` + `.gitignore` added, all MCPs configured (Docker/Postgres/Railway/Vercel/GitHub/Notion), Node.js v26 installed, container running, PR #2 opened on `hemal/phase1-setup` | Launch `tair_sim.launch.py`, verify `/scan` in RViz2, drive with teleop, screen recording |
+| May 9, 2026 | Dockerfile updated (fake_node + SLAM + Nav2), `tair_bringup` package created and building, `docs/INTERFACE.md` created, README + context files written, `.gitattributes` + `.gitignore` added, all MCPs configured (Docker/Postgres/Railway/Vercel/GitHub/Notion), Node.js v26 installed, container running, PR #2 opened on `hemal/phase1-setup`; then: `tair_sim.launch.py` fixed (added `robot_state_publisher` + `waffle.yaml` params), container launch confirmed (all 4 nodes clean), `rviz_config.rviz` fixed frame → `odom`, `session-handoff.mdc` rule added | Open RViz2 via noVNC, verify `/scan` ring, drive with teleop, save map, screen recording |
 
 ---
 
