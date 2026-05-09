@@ -1,0 +1,71 @@
+# slam-toolbox configuration for TAIR warehouse simulation
+# Tuned for: large featureless aisles, repetitive racking, 20m LiDAR range
+#
+# Key tuning decisions:
+# - 0.05m resolution: fine enough for warehouse aisle navigation
+# - 20m max range: matches STL27L LiDAR spec (25m capable, 20m practical)
+# - Loop closing ON: critical for symmetric warehouse environments
+# - Scan buffer of 10: balances memory vs. loop-closing accuracy
+# - Minimum travel thresholds: prevent redundant updates in slow-moving cart
+
+slam_toolbox:
+  ros__parameters:
+    # ── Solver ───────────────────────────────────────────────────────────────
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    # ── Map ──────────────────────────────────────────────────────────────────
+    resolution: 0.05                    # meters per pixel — warehouse-grade
+    max_laser_range: 20.0               # meters — practical range for STL27L
+    minimum_time_interval: 0.5          # seconds — don't process faster than 2Hz
+    transform_timeout: 0.2              # seconds
+    tf_buffer_duration: 30.0            # seconds
+    stack_size_to_use: 40000000         # 40MB stack for large maps
+
+    # ── Scan matching ────────────────────────────────────────────────────────
+    use_scan_matching: true
+    use_scan_barycenter: true
+    scan_buffer_size: 10                # recent scans for matching
+    scan_buffer_maximum_scan_distance: 10.0
+    link_match_minimum_response_fine: 0.1
+    link_scan_maximum_distance: 1.5
+    loop_match_minimum_chain_size: 10
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_coarse: 0.35
+    loop_match_minimum_response_fine: 0.45
+
+    # ── Loop closing ─────────────────────────────────────────────────────────
+    do_loop_closing: true               # critical for symmetric warehouse aisles
+    loop_search_maximum_distance: 3.0   # meters — search radius for closing
+    loop_search_space_dimension: 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    # ── Movement thresholds ──────────────────────────────────────────────────
+    minimum_travel_distance: 0.3        # meters — don't update if barely moved
+    minimum_travel_heading: 0.3         # radians (~17°)
+
+    # ── Correlation search ───────────────────────────────────────────────────
+    correlation_search_space_dimension: 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.1
+
+    # ── General ──────────────────────────────────────────────────────────────
+    mode: mapping                       # 'mapping' or 'localization'
+    debug_logging: false
+    throttle_scans: 1
+    enable_interactive_mode: true
+
+    # ── Frame IDs ────────────────────────────────────────────────────────────
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint         # TurtleBot3 uses base_footprint
+    scan_topic: /scan
+    map_update_interval: 5.0            # seconds between map publishes
+
+    # ── Use sim time (overridden by launch file) ─────────────────────────────
+    use_sim_time: true

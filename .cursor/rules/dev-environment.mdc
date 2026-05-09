@@ -1,0 +1,62 @@
+---
+description: "TAIR: development environment (Docker ROS2 Humble + Gazebo + noVNC on macOS Apple Silicon)"
+globs:
+  - "Dockerfile"
+  - "docker-compose.yml"
+  - "docs/development-environment.md"
+  - "ros2_ws/**"
+alwaysApply: true
+---
+
+## TAIR development environment (source of truth)
+
+**Always read `HEMAL_CONTEXT.md` at the repo root for full project context before starting work.**
+
+Primary dev setup:
+
+- macOS (Apple Silicon / ARM64)
+- Docker Desktop runs an Ubuntu 22.04 ARM64 container with ROS 2 Humble
+- Gazebo Classic 11 + TurtleBot3 Waffle for simulation
+- slam-toolbox for 2D SLAM
+- Repo root is mounted into the container at `/workspace`
+- ROS 2 workspace is in `/workspace/ros2_ws`
+
+### Start/enter the container
+
+```bash
+docker compose up -d --build ros2_vnc
+docker exec -it tair_ros2_vnc bash
+```
+
+### Build the workspace (inside container)
+
+```bash
+cd /workspace/ros2_ws
+colcon build
+source install/setup.bash
+```
+
+### Launch simulation with SLAM
+
+```bash
+ros2 launch tair_bringup tair_sim.launch.py
+```
+
+In a separate terminal:
+```bash
+ros2 run turtlebot3_teleop teleop_keyboard
+```
+
+### RViz on macOS via noVNC
+
+- Open: `http://localhost:6080/vnc.html` and click **Connect**
+- RViz2 launches automatically as part of `tair_sim.launch.py`
+
+### Key context files
+
+| File | Purpose |
+|---|---|
+| `HEMAL_CONTEXT.md` | Hemal's working context, sprint plan, schemas |
+| `TAIR_Context.md` | Full project context |
+| `docs/INTERFACE.md` | ROS2 topics, TF frames, API shapes, sensor ports |
+| `HEMAL_TASK_CHECKLIST.md` | Task checklist with prompts |
