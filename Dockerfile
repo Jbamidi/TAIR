@@ -40,7 +40,15 @@ RUN apt-get update \
     curl \
   && rm -rf /var/lib/apt/lists/*
 
-# ── Layer 2: Gazebo Classic 11 + TurtleBot3 + SLAM + Nav2 ──────────────────
+# ── Layer 2: Add OSRF Gazebo repository (required for Gazebo Classic 11) ────
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gnupg lsb-release \
+  && curl -sSL https://packages.osrfoundation.org/gazebo.key | apt-key add - \
+  && echo "deb https://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
+     > /etc/apt/sources.list.d/gazebo-stable.list \
+  && rm -rf /var/lib/apt/lists/*
+
+# ── Layer 3: Gazebo Classic 11 + TurtleBot3 + SLAM + Nav2 ──────────────────
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     # Gazebo simulation
