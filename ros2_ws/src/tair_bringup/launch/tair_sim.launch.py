@@ -2,7 +2,8 @@
 TAIR Simulation Launch File
 ----------------------------
 Launches:
-  1. TurtleBot3 Waffle in Gazebo (warehouse-like world)
+  1. TurtleBot3 Waffle fake_node (ARM64-compatible, no Gazebo required)
+     - Publishes /scan (simulated LiDAR), /odom, and TF tree
   2. slam-toolbox in async mapping mode
   3. RViz2 with TAIR display config
 
@@ -13,19 +14,19 @@ Usage (inside Docker container):
   source install/setup.bash
   ros2 launch tair_bringup tair_sim.launch.py
 
-Then in a separate terminal:
+Then in a separate terminal to drive the robot:
   ros2 run turtlebot3_teleop teleop_keyboard
+
+Note: Gazebo Classic is not available for ARM64 in ROS 2 Humble apt repos.
+turtlebot3_fake_node is the correct lightweight simulation target for Docker
+on Apple Silicon. The /scan topic publishes a ring of obstacle-free rays — 
+drive around with teleop to generate varied scan data for SLAM.
 """
 
 import os
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    IncludeLaunchDescription,
-    SetEnvironmentVariable,
-)
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -33,25 +34,28 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # ── Paths ────────────────────────────────────────────────────────────────
     tair_bringup_dir = get_package_share_directory('tair_bringup')
-    turtlebot3_gazebo_dir = get_package_share_directory('turtlebot3_gazebo')
 
     slam_params_file = os.path.join(tair_bringup_dir, 'config', 'slam_toolbox_params.yaml')
     rviz_config_file = os.path.join(tair_bringup_dir, 'config', 'rviz_config.rviz')
 
     # ── Launch arguments ─────────────────────────────────────────────────────
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
     declare_use_sim_time = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
-        description='Use simulation (Gazebo) clock',
+        default_value='false',
+        description='Use simulation clock (false for fake_node)',
     )
 
-    # ── 1. TurtleBot3 in Gazebo ──────────────────────────────────────────────
-    gazebo_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(turtlebot3_gazebo_dir, 'launch', 'turtlebot3_world.launch.py')
-        ),
+    # ── 1. TurtleBot3 fake_node ──────────────────────────────────────────────
+    # Publishes /scan, /odom, and the full TF tree (map→odom→base_footprint→base_link→base_scan)
+    # without requiring Gazebo. Works on ARM64 Docker.
+    fake_node = Node(
+        package='turtlebot3_fake_node',
+        executable='turtlebot3_fake_node',
+        name='turtlebot3_fake_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
     )
 
     # ── 2. slam-toolbox (async mapping mode) ─────────────────────────────────
@@ -79,7 +83,7 @@ def generate_launch_description():
     # ── Assemble ─────────────────────────────────────────────────────────────
     return LaunchDescription([
         declare_use_sim_time,
-        gazebo_launch,
+        fake_node,
         slam_toolbox_node,
         rviz_node,
     ])

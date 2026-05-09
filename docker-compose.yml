@@ -23,7 +23,6 @@ services:
       - MESA_GLSL_VERSION_OVERRIDE=330
       - ROS_DOMAIN_ID=0
       - TURTLEBOT3_MODEL=waffle
-      - GAZEBO_MODEL_PATH=/opt/ros/humble/share/turtlebot3_gazebo/models
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -50,7 +49,6 @@ services:
       - MESA_GL_VERSION_OVERRIDE=3.3
       - MESA_GLSL_VERSION_OVERRIDE=330
       - TURTLEBOT3_MODEL=waffle
-      - GAZEBO_MODEL_PATH=/opt/ros/humble/share/turtlebot3_gazebo/models
     ports:
       - "5900:5900"
       - "6080:6080"

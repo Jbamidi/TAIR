@@ -40,26 +40,18 @@ RUN apt-get update \
     curl \
   && rm -rf /var/lib/apt/lists/*
 
-# ── Layer 2: Add OSRF Gazebo repository (required for Gazebo Classic 11) ────
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends gnupg lsb-release \
-  && curl -sSL https://packages.osrfoundation.org/gazebo.key | apt-key add - \
-  && echo "deb https://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
-     > /etc/apt/sources.list.d/gazebo-stable.list \
-  && rm -rf /var/lib/apt/lists/*
-
-# ── Layer 3: Gazebo Classic 11 + TurtleBot3 + SLAM + Nav2 ──────────────────
+# ── Layer 2: TurtleBot3 (fake-node) + SLAM + Nav2 ───────────────────────────
+# NOTE: Gazebo Classic binaries are not published for ARM64 in the Humble repos.
+# turtlebot3-fake-node provides /scan, /odom, and TF without Gazebo — the
+# correct approach for ARM64 Docker simulation.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-    # Gazebo simulation
-    ros-humble-gazebo-ros-pkgs \
-    # TurtleBot3 simulation (cartographer + gazebo-ros2-control excluded — ARM64 build issues)
-    ros-humble-turtlebot3-gazebo \
+    # TurtleBot3 simulation (fake-node replaces Gazebo for ARM64)
+    ros-humble-turtlebot3-fake-node \
     ros-humble-turtlebot3-description \
-    ros-humble-turtlebot3-navigation2 \
-    ros-humble-turtlebot3-teleop \
     ros-humble-turtlebot3-msgs \
     ros-humble-turtlebot3-bringup \
+    ros-humble-turtlebot3-teleop \
     # SLAM
     ros-humble-slam-toolbox \
     # Navigation / map tools
@@ -74,10 +66,8 @@ RUN apt-get update \
 
 # ── Environment: ROS2 + TurtleBot3 model ────────────────────────────────────
 ENV TURTLEBOT3_MODEL=waffle
-ENV GAZEBO_MODEL_PATH=/opt/ros/humble/share/turtlebot3_gazebo/models
 RUN echo "source /opt/ros/humble/setup.bash" >> /etc/bash.bashrc \
-  && echo "export TURTLEBOT3_MODEL=waffle" >> /etc/bash.bashrc \
-  && echo "export GAZEBO_MODEL_PATH=/opt/ros/humble/share/turtlebot3_gazebo/models" >> /etc/bash.bashrc
+  && echo "export TURTLEBOT3_MODEL=waffle" >> /etc/bash.bashrc
 
 # ── VNC entrypoint ──────────────────────────────────────────────────────────
 COPY scripts/start-vnc.sh /usr/local/bin/start-vnc.sh
