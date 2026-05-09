@@ -4,8 +4,9 @@ TAIR Simulation Launch File
 Launches:
   1. TurtleBot3 Waffle fake_node (ARM64-compatible, no Gazebo required)
      - Publishes /scan (simulated LiDAR), /odom, and TF tree
-  2. slam-toolbox in async mapping mode
-  3. RViz2 with TAIR display config
+  2. robot_state_publisher (URDF → /tf static transforms)
+  3. slam-toolbox in async mapping mode
+  4. RViz2 with TAIR display config
 
 Usage (inside Docker container):
   source /opt/ros/humble/setup.bash
@@ -16,11 +17,6 @@ Usage (inside Docker container):
 
 Then in a separate terminal to drive the robot:
   ros2 run turtlebot3_teleop teleop_keyboard
-
-Note: Gazebo Classic is not available for ARM64 in ROS 2 Humble apt repos.
-turtlebot3_fake_node is the correct lightweight simulation target for Docker
-on Apple Silicon. The /scan topic publishes a ring of obstacle-free rays — 
-drive around with teleop to generate varied scan data for SLAM.
 """
 
 import os
@@ -34,9 +30,13 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # ── Paths ────────────────────────────────────────────────────────────────
     tair_bringup_dir = get_package_share_directory('tair_bringup')
+    turtlebot3_fake_dir = get_package_share_directory('turtlebot3_fake_node')
+    turtlebot3_desc_dir = get_package_share_directory('turtlebot3_description')
 
     slam_params_file = os.path.join(tair_bringup_dir, 'config', 'slam_toolbox_params.yaml')
     rviz_config_file = os.path.join(tair_bringup_dir, 'config', 'rviz_config.rviz')
+    fake_node_params = os.path.join(turtlebot3_fake_dir, 'param', 'waffle.yaml')
+    urdf_file = os.path.join(turtlebot3_desc_dir, 'urdf', 'turtlebot3_waffle.urdf')
 
     # ── Launch arguments ─────────────────────────────────────────────────────
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
@@ -47,18 +47,31 @@ def generate_launch_description():
         description='Use simulation clock (false for fake_node)',
     )
 
-    # ── 1. TurtleBot3 fake_node ──────────────────────────────────────────────
-    # Publishes /scan, /odom, and the full TF tree (map→odom→base_footprint→base_link→base_scan)
-    # without requiring Gazebo. Works on ARM64 Docker.
+    # ── 1. robot_state_publisher ─────────────────────────────────────────────
+    with open(urdf_file, 'r') as f:
+        robot_description = f.read()
+
+    robot_state_publisher = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'robot_description': robot_description,
+        }],
+    )
+
+    # ── 2. TurtleBot3 fake_node ──────────────────────────────────────────────
     fake_node = Node(
         package='turtlebot3_fake_node',
         executable='turtlebot3_fake_node',
         name='turtlebot3_fake_node',
         output='screen',
-        parameters=[{'use_sim_time': use_sim_time}],
+        parameters=[fake_node_params, {'use_sim_time': use_sim_time}],
     )
 
-    # ── 2. slam-toolbox (async mapping mode) ─────────────────────────────────
+    # ── 3. slam-toolbox (async mapping mode) ─────────────────────────────────
     slam_toolbox_node = Node(
         package='slam_toolbox',
         executable='async_slam_toolbox_node',
@@ -70,7 +83,7 @@ def generate_launch_description():
         ],
     )
 
-    # ── 3. RViz2 ─────────────────────────────────────────────────────────────
+    # ── 4. RViz2 ─────────────────────────────────────────────────────────────
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -83,6 +96,7 @@ def generate_launch_description():
     # ── Assemble ─────────────────────────────────────────────────────────────
     return LaunchDescription([
         declare_use_sim_time,
+        robot_state_publisher,
         fake_node,
         slam_toolbox_node,
         rviz_node,
